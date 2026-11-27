@@ -1,0 +1,74 @@
+services:
+  trustops-postgres:
+    container_name: trustops-postgres
+    image: postgres:18-alpine
+    restart: unless-stopped
+    ports: 
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trustops-db
+    volumes:
+      - trustops-postgres-data:/var/lib/postgresql
+    networks:
+      - trustops-network
+  
+  trustops-redis:
+    container_name: trustops-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - trustops-redis-data:/data
+    networks:
+      - trustops-network
+    
+  trustops-kafka:
+    container_name: trustops-kafka
+    image: apache/kafka:4.3.1
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:29092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://trustops-kafka:29092,EXTERNAL://localhost:9092
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@trustops-kafka:9093
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    volumes:
+      - trustops-kafka-data:/var/lib/kafka/data
+    networks:
+      - trustops-network
+
+  trustops-kafka-ui:
+    container_name: trustops-kafka-ui
+    image: ghcr.io/kafbat/kafka-ui:latest
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - trustops-network
+
+volumes:
+  trustops-postgres-data:
+  trustops-redis-data:
+  trustops-kafka-data:
+
+networks:
+  trustops-network:
+    driver: bridge

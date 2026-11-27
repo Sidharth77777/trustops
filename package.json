@@ -1,0 +1,45 @@
+{
+  "name": "trustops",
+  "private": true,
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Sidharth K S",
+  "description": "trustops microservices project",
+  "scripts": {
+    "otp:test": "npm run otp:test -w @trustops/auth-service",
+    "docker:up": "docker compose up",
+    "docker:down": "docker compose down",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "kafka:init": "tsx scripts/kafka-init.ts",
+    
+
+    "build:shared": "npm run build -w @trustops/shared",
+    "build:events": "npm run build -w @trustops/events",
+    "build:packages": "concurrently \"npm run build:shared\" \"npm run build:events\"",
+
+    "dev:gateway": "npm run dev -w @trustops/api-gateway",
+    "dev:auth": "npm run dev -w @trustops/auth-service",
+    "dev:notification": "npm run dev -w @trustops/notification-service",
+
+    "build:gateway": "npm run build -w @trustops/api-gateway",
+    "build:auth": "npm run build -w @trustops/auth-service",
+    "build:notification": "npm run build -w @trustops/notification-service",
+
+    "start:gateway": "npm run start -w @trustops/api-gateway",
+    "start:auth": "npm run start -w @trustops/auth-service",
+    "start:notification": "npm run start -w @trustops/notification-service"
+    
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
