@@ -32,6 +32,11 @@ export const authRoutes: EndpointDefinition[] = [
         authRequired: true,
     },
     {
+        method: "GET",
+        path: "/auth/me",
+        authRequired: true,
+    },
+    {
         method: "POST",
         path: "/auth/refresh",
         authRequired: true,

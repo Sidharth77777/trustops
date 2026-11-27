@@ -3,6 +3,7 @@ import { AddEmailSchemaType, ForgotPasswordSchemaType, LoginSchemaType, Register
 import * as authService from "../services/auth.service"
 import { AppError, ErrorCodes, sendFailResponse, sendSuccessResponse } from "@trustops/shared"
 import { COOKIE_KEY, refreshCookieOptions } from "../constants/constants"
+import { ENV } from "../config/env"
 
 export const registerController = async(req:Request, res:Response) => {
     const {email, name, password} = req.body as RegisterSchemaType
@@ -11,7 +12,7 @@ export const registerController = async(req:Request, res:Response) => {
 
     res.cookie(COOKIE_KEY, refreshToken, refreshCookieOptions)
 
-    sendSuccessResponse(res, "User registered successfully", { accessToken }, 201)
+    sendSuccessResponse(res, "User registered successfully...Please check your email for verification link", { accessToken }, 201)
 
 }
 
@@ -57,6 +58,15 @@ export const logoutController = async(req:Request, res:Response) => {
     sendSuccessResponse(res, "Logout successful", {})
 }
 
+export const getMeController = async(req:Request, res:Response) => {
+    const user = req?.user
+    if (!user) throw new AppError(401, "Not authenticated", ErrorCodes.UNAUTHORIZED)
+
+    const userData = await authService.getMeService(user)
+
+    sendSuccessResponse(res, "User data retrieved successfully", { user: userData })
+}
+
 export const refreshController = async(req:Request, res:Response) => {
     const oldRefreshToken = req.cookies[COOKIE_KEY]
     if (!oldRefreshToken) throw new AppError(401, "Refresh token absent", ErrorCodes.UNAUTHORIZED)
@@ -66,7 +76,6 @@ export const refreshController = async(req:Request, res:Response) => {
     res.cookie(COOKIE_KEY, refreshToken, refreshCookieOptions)
 
     sendSuccessResponse(res, "Access token refreshed", { accessToken })
-    
 }
 
 export const forgotPasswordController = async(req:Request, res:Response) => {
@@ -103,8 +112,9 @@ export const googleAuthCallbackController = async(req:Request, res:Response) => 
 
     res.cookie(COOKIE_KEY, refreshToken, refreshCookieOptions)
 
-    sendSuccessResponse(res, "Google login successful", { accessToken })
-
+    return res.redirect(
+        `${ENV.CORS_ORIGINS}/google/callback`
+    )
 }
 
 export const twoFASetupController = async(req:Request, res:Response) => {
@@ -139,11 +149,11 @@ export const walletNonceController = async(req:Request, res:Response) => {
 export const walletLoginController = async(req:Request, res:Response) => {
     const {address, message, signature} = req.body as WalletLoginSchemaType
 
-    const {accessToken, refreshToken} = await authService.walletLoginService({ address, message, signature })
+    const {accessToken, refreshToken, user} = await authService.walletLoginService({ address, message, signature })
 
     res.cookie(COOKIE_KEY, refreshToken, refreshCookieOptions)
 
-    sendSuccessResponse(res, "Wallet login successful", accessToken)
+    sendSuccessResponse(res, "Wallet login successful", {accessToken, user})
 }
 
 export const addEmailController = async(req:Request, res:Response) => {

@@ -30,5 +30,6 @@ export const DB_TABLES = {
     TRUSTOPS_USERS: "trustops_users",
     TRUSTOPS_SIWE_NONCES: "trustops_siwe_nonces",
     TRUSTOPS_USER_WALLETS: "trustops_user_wallets",
+
     
 } as const

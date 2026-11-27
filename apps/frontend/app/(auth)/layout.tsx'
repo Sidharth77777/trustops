@@ -1,0 +1,77 @@
+
+// "use client"
+
+// import { useEffect, useState } from "react"
+// import { usePathname, useRouter } from "next/navigation"
+
+// import { api } from "@/lib/api/axios"
+// import { API_ROUTES } from "@/config/proxy"
+// import { useAuthStore } from "@/store/auth.store"
+
+// export default function AuthLayout({
+//     children,
+// }: {
+//     children: React.ReactNode
+// }) {
+//     const router = useRouter()
+//     const pathname = usePathname()
+
+//     const [isChecking, setIsChecking] = useState(true)
+
+//     useEffect(() => {
+//         // Google callback handles its own refresh
+//         if (pathname === "/google/callback") {
+//             setIsChecking(false)
+//             return
+//         }
+
+//         let cancelled = false
+
+//         const checkAuth = async () => {
+//             try {
+//                 const store = useAuthStore.getState()
+
+//                 // Already authenticated in memory
+//                 if (store.accessToken && store.isAuthenticated) {
+//                     router.replace("/dashboard")
+//                     return
+//                 }
+
+//                 // Check refresh cookie
+//                 const res = await api.post(
+//                     `${API_ROUTES.auth}/refresh`
+//                 )
+
+//                 const accessToken = res.data.data.accessToken
+
+//                 if (cancelled) return
+
+//                 useAuthStore.getState().setAccessToken(accessToken)
+
+//                 router.replace("/dashboard")
+
+//             } catch {
+//                 if (cancelled) return
+
+//                 useAuthStore.getState().clearAuth()
+//                 setIsChecking(false)
+//             }
+//         }
+
+//         checkAuth()
+
+//         return () => {
+//             cancelled = true
+//         }
+//     }, [pathname, router])
+
+//     if (isChecking) {
+//         return (
+//             <div className="flex min-h-screen items-center justify-center">
+//                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-primary" />
+//             </div>
+//         )
+//     }
+
+//     return <>{children}</>
+// }

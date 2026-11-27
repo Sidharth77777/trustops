@@ -1,6 +1,6 @@
 // API RESPONSE TYPES AND FUNCTIONS
 export {sendSuccessResponse, sendFailResponse} from "./responses/response"
-export type {SuccessResponse, ErrorResponse} from "./responses/types"
+export type {SuccessResponse, ErrorResponse, ApiResponse} from "./responses/types"
 
 // LOGGER
 export {logger} from "./logger/logger"
@@ -15,10 +15,12 @@ export {HEADERS, APP_URL_PREFIX, APP_NAME, CACHE_TTL_SECONDS} from "./config/con
 // PG HELPERS
 export {getPool, checkPoolHealth, closePool} from "./db/pool"
 export {withTransaction} from "./db/transaction"
+export {getCacheOrFetchFromDB} from "./db/cache-aside" 
 
 // REDIS HELPERS
 export {startRedis, getRedisClient, endRedis} from "./redis/client"
-export {getRedisVal, setRedisVal, setRedisExpVal, getRedisJson, setRedisJson, setRedisExpJson, deleteRedisVal, existsRedisVal} from "./redis/redis"
+export {getRedisVal, setRedisVal, setRedisExpVal, getRedisJson, setRedisJson, setRedisExpJson, invalidateCache, existsRedisVal} from "./redis/redis"
+export {CACHE_USER_TOKEN_VERSION_KEY_PREFIX, CACHE_USER_PROFILE_KEY_PREFIX, USER_PROFILE_CACHE_TTL} from "./redis/keys"
 
 // KAFKA HELPERS
 export {createKafkaClient} from "./kafka/client"
@@ -52,7 +54,7 @@ export {requestIdMiddleware} from "./context/requestIdMiddleware"
 
 // JWT & AUTH HELPERS
 export {signAccessToken, verifyAccessToken, signRefreshToken, verifyRefreshToken, signBothJWTTokens} from "./auth/jwt"
-export type {JWTPayload, UserRole, RefreshTokenPayload} from "./auth/types"
+export type {JWTPayload, UserRole, RefreshTokenPayload, AuthUser} from "./auth/types"
 export {authenticate} from "./auth/authenticate"
 
 // PAGINATION TYPES

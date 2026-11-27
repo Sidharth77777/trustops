@@ -12,6 +12,8 @@ authRouter.post("/resend-verification", validateBody(resendVerificationSchema), 
 authRouter.post("/login", validateBody(loginSchema), authController.loginController)
 authRouter.post("/logout", asyncHandler(authenticate) ,asyncHandler(authController.logoutController))
 
+authRouter.get("/me", asyncHandler(authenticate), asyncHandler(authController.getMeController))
+
 authRouter.post("/refresh", asyncHandler(authController.refreshController))
 
 authRouter.post("/forgot-password", validateBody(forgotPasswordSchema), asyncHandler(authController.forgotPasswordController))

@@ -1,4 +1,4 @@
-import { AppError, checkContext, createOutboxEvent, ErrorCodes, JWTPayload, signBothJWTTokens, UserRole, verifyRefreshToken, withTransaction} from "@trustops/shared"
+import { AppError, CACHE_USER_PROFILE_KEY_PREFIX, checkContext, createOutboxEvent, ErrorCodes, invalidateCache, JWTPayload, signBothJWTTokens, UserRole, verifyRefreshToken, withTransaction} from "@trustops/shared"
 import { AddEmailSchemaType, ForgotPasswordSchemaType, LoginSchemaType, RegisterSchemaType, ResendVerificationSchemaType, ResetPasswordSchemaType, WalletLoginSchemaType, WalletNonceSchemaType } from "../schemas/auth.schema";
 import * as authRepo from "../repositories/auth.repository"
 import { EMAIL_VERIFY_URL_PREFIX, RESET_PASSWORD_EXPIRE_TIME, RESET_PASSWORD_URL_PREFIX } from "../constants/constants";
@@ -10,6 +10,7 @@ import { TokenPayload } from "google-auth-library";
 import { generateQRCode, twoFAHelper, twoFAVerifier } from "../lib/otp";
 import { SiweMessage } from "siwe";
 import { verifySiwe } from "../lib/siwe";
+import { MeUser } from "../types/types";
 
 export const registerService = async(input:RegisterSchemaType): Promise<{accessToken:string, refreshToken:string}> => {
     const context = checkContext()
@@ -105,7 +106,7 @@ export const loginService = async(input:LoginSchemaType): Promise<{accessToken:s
     const isPasswordValid = await comparePasswordHashes(input.password, existingUser.password_hash as string)
     if (!isPasswordValid) throw new AppError(401, "Invalid email or password", ErrorCodes.UNAUTHORIZED)
 
-    if (!existingUser.is_email_verified) throw new AppError(403, "Your email is not verified.. Please verify your email or request a new verification email", ErrorCodes.FORBIDDEN)
+    if (!existingUser.is_email_verified) throw new AppError(403, "Your email is not verified.. Please verify your email or request a new verification email or check your gmail for a verification link", ErrorCodes.FORBIDDEN)
     
     const {accessToken, refreshToken} = signBothJWTTokens({
         id: existingUser.id,
@@ -138,6 +139,13 @@ export const logoutService = async (refreshToken: string | undefined): Promise<v
 
     await authRepo.incrementTokenVersion(payload.id);
 };
+
+export const getMeService = async(authUser:JWTPayload): Promise<MeUser | null> => {
+    const user = await authRepo.findMeUserById(authUser.id)
+    if (!user) throw new AppError(404, "User not found", ErrorCodes.NOT_FOUND)
+
+    return user
+}
 
 export const refreshService = async(token:string): Promise<{accessToken:string, refreshToken:string}> => {
     const payload = verifyRefreshToken(token)
@@ -295,7 +303,7 @@ export const walletNonceService = async(input:WalletNonceSchemaType): Promise<{n
     return nonce ? { nonce: nonce.nonce } : null
 }
 
-export const walletLoginService = async(input:WalletLoginSchemaType): Promise<{accessToken:string, refreshToken:string}> => {
+export const walletLoginService = async(input:WalletLoginSchemaType): Promise<{accessToken:string, refreshToken:string, user:JWTPayload}> => {
     const siweMessage = new SiweMessage(input.message)
     if (siweMessage.address.toLowerCase().trim() !== input.address) throw new AppError(401, "Wallet address mismatch", ErrorCodes.UNAUTHORIZED)
 
@@ -336,7 +344,14 @@ export const walletLoginService = async(input:WalletLoginSchemaType): Promise<{a
 
     return {
         accessToken,
-        refreshToken
+        refreshToken,
+        user: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            is_email_verified: user.is_email_verified as boolean,
+            role: user.role as UserRole,
+        }
     }
 }
 
@@ -348,11 +363,14 @@ export const addEmailService = async(authUser:JWTPayload, input:AddEmailSchemaTy
 
     const user = await authRepo.findUserById(authUser.id)
     if (!user) throw new AppError(404, "User not found", ErrorCodes.NOT_FOUND)
-    if (user.is_email_verified) throw new AppError(400, "Email already verified", ErrorCodes.BAD_REQUEST)
+    if (user.email && user.is_email_verified) throw new AppError(400, "Your account already has a verified email", ErrorCodes.BAD_REQUEST)
+    if (existingEmailUser && existingEmailUser.id !== authUser.id) throw new AppError(409, "This email is already registered", ErrorCodes.CONFLICT)
 
     await withTransaction(async (client) => {
 
         await authRepo.updateUserEmail(client, authUser.id, input.email)
+
+        await invalidateCache(CACHE_USER_PROFILE_KEY_PREFIX, authUser.id, "Failed to invalidate user profile cache")
 
         const verificationToken = createToken()
         const verificationTokenHash = createHash(verificationToken)

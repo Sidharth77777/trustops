@@ -1,6 +1,7 @@
 import { CACHE_TTL_SECONDS } from "../config/constants"
 import { AppError } from "../errors/AppError"
 import { ErrorCodes } from "../errors/errorCodes"
+import { logger } from "../logger/logger"
 import { getRedisClient } from "./client"
 
 // check redis key
@@ -47,23 +48,39 @@ export const setRedisExpJson = async<T>(
 
 }
 
-export const getRedisJson = async<T>(cacheKey:string): Promise<T | null> => {
+export const getRedisJson = async <T>(cacheKey: string): Promise<T | null> => {
     validateRedisKey(cacheKey)
-    const val = await getRedisClient().get(cacheKey)
+
+    const redis = getRedisClient()
+    const val = await redis.get(cacheKey)
+
     if (val === null) return null
 
     try {
         return JSON.parse(val) as T
-
     } catch {
+        await redis.del(cacheKey)
+
         throw new AppError(500, `Invalid JSON stored for redis key: ${cacheKey}`, ErrorCodes.INTERNAL_SERVER_ERROR)
     }
 }
 
 // deleting 
-export const deleteRedisVal = async(cacheKey:string) => {
+const deleteRedisVal = async(cacheKey:string) => {
     validateRedisKey(cacheKey)
     await getRedisClient().del(cacheKey)
+}
+
+export const invalidateCache = async(cacheKeyPrefix:string, cacheKeySuffix:string, logMsg?:string) => {
+    const redisKey = `${cacheKeyPrefix}${cacheKeySuffix}`
+    try {
+        await deleteRedisVal(redisKey)
+    } catch (error){
+        logger.error(
+            { error, redisKey, cacheKeySuffix },
+            logMsg ?? `Failed to invalidate cache on Redis key: ${redisKey}`
+        )
+    }
 }
 
 // checking if key exists -> boolean

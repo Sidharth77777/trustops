@@ -15,6 +15,8 @@ export const ENV = {
     AUTH_SERVICE_URL: checkEnvVariables("AUTH_SERVICE_URL"),
     API_GATEWAY_URL: checkEnvVariables("API_GATEWAY_URL"),
 
+    CORS_ORIGINS: checkEnvVariables("CORS_ORIGINS"),
+
     GOOGLE_CLIENT_ID: checkEnvVariables("GOOGLE_CLIENT_ID"),
     GOOGLE_CLIENT_SECRET: checkEnvVariables("GOOGLE_CLIENT_SECRET"),
     
